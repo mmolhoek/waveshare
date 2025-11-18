@@ -1,5 +1,5 @@
 import { SpiDevice, openSync as spiOpenSync } from "spi-device";
-import { Gpio } from "onoff";
+import { Gpio } from "pigpio";
 
 /**
  * Pin configuration for the ePaper display
@@ -52,19 +52,23 @@ export class EPD4in26 {
       bitsPerWord: 8,
     });
 
-    // Initialize GPIO pins with debug logs
+    // Initialize GPIO pins with pigpio
     console.log("Initializing GPIO pins...");
     try {
-      this.power = new Gpio(powerPin, "out");
-      this.power.writeSync(1); // Power on the display
+      this.power = new Gpio(powerPin, { mode: Gpio.OUTPUT });
+      this.power.digitalWrite(1); // Power on the display
       console.log("Power pin initialized and set to HIGH");
-      this.rst = new Gpio(rstPin, "out");
+
+      this.rst = new Gpio(rstPin, { mode: Gpio.OUTPUT });
       console.log("RST pin initialized");
-      this.dc = new Gpio(dcPin, "out");
+
+      this.dc = new Gpio(dcPin, { mode: Gpio.OUTPUT });
       console.log("DC pin initialized");
-      this.cs = new Gpio(csPin, "out");
+
+      this.cs = new Gpio(csPin, { mode: Gpio.OUTPUT });
       console.log("CS pin initialized");
-      this.busy = new Gpio(busyPin, "in");
+
+      this.busy = new Gpio(busyPin, { mode: Gpio.INPUT });
       console.log("Busy pin initialized");
     } catch (error) {
       console.error(
@@ -81,11 +85,11 @@ export class EPD4in26 {
    * Hardware reset
    */
   private async reset(): Promise<void> {
-    this.rst.writeSync(1);
+    this.rst.digitalWrite(1);
     await this.delay(20);
-    this.rst.writeSync(0);
+    this.rst.digitalWrite(0);
     await this.delay(2);
-    this.rst.writeSync(1);
+    this.rst.digitalWrite(1);
     await this.delay(20);
   }
 
@@ -93,20 +97,20 @@ export class EPD4in26 {
    * Send command to the display
    */
   private sendCommand(command: number): void {
-    this.dc.writeSync(0);
-    this.cs.writeSync(0);
+    this.dc.digitalWrite(0);
+    this.cs.digitalWrite(0);
     this.spi.transferSync([
       { sendBuffer: Buffer.from([command]), byteLength: 1 },
     ]);
-    this.cs.writeSync(1);
+    this.cs.digitalWrite(1);
   }
 
   /**
    * Send data to the display
    */
   private sendData(data: number | Buffer): void {
-    this.dc.writeSync(1);
-    this.cs.writeSync(0);
+    this.dc.digitalWrite(1);
+    this.cs.digitalWrite(0);
 
     if (typeof data === "number") {
       this.spi.transferSync([
@@ -116,7 +120,7 @@ export class EPD4in26 {
       this.spi.transferSync([{ sendBuffer: data, byteLength: data.length }]);
     }
 
-    this.cs.writeSync(1);
+    this.cs.digitalWrite(1);
   }
 
   /**
@@ -125,7 +129,7 @@ export class EPD4in26 {
   private async readBusy(): Promise<void> {
     console.log("e-Paper busy");
     let count = 0;
-    while (this.busy.readSync() === 0) {
+    while (this.busy.digitalRead() === 0) {
       await this.delay(10);
       count++;
       if (count > 1000) {
@@ -341,12 +345,14 @@ export class EPD4in26 {
    * Clean up resources
    */
   cleanup(): void {
-    this.rst.unexport();
-    this.dc.unexport();
-    this.cs.unexport();
-    this.busy.unexport();
-    this.power.writeSync(0); // Power off the display
-    this.power.unexport();
+    console.log("Cleaning up GPIO resources...");
+
+    // Set all output pins to a safe state
+    this.power.digitalWrite(0); // Power off the display
+    this.rst.digitalWrite(0);
+    this.dc.digitalWrite(0);
+    this.cs.digitalWrite(0);
+
     console.log("EPD resources cleaned up");
   }
 }
