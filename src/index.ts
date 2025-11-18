@@ -5,11 +5,10 @@ import * as lgpio from "lgpio";
  */
 export interface EPD4in26Config {
   spiDevice?: string; // SPI device path, default: '/dev/spidev0.0'
-  rstPin?: number; // Reset pin (BCM), default: 17
-  dcPin?: number; // Data/Command pin (BCM), default: 25
-  csPin?: number; // Chip Select pin (BCM), default: 8
-  busyPin?: number; // Busy pin (BCM), default: 24
-  powerPin?: number; // Power control pin (BCM), default: 18
+  rstGPIO?: number; // Reset pin (BCM), default: 17
+  dcGPIO?: number; // Data/Command pin (BCM), default: 25
+  busyGPIO?: number; // Busy pin (BCM), default: 24
+  powerGPIO?: number; // Power control pin (BCM), default: 18
 }
 
 /**
@@ -24,51 +23,41 @@ export const EPD_HEIGHT = 480;
 export class EPD4in26 {
   private readonly WIDTH = EPD_WIDTH;
   private readonly HEIGHT = EPD_HEIGHT;
-  private rstPin: number;
-  private dcPin: number;
-  private csPin: number;
-  private busyPin: number;
-  private powerPin: number;
+  private rstGPIO: number;
+  private dcGPIO: number;
+  private busyGPIO: number;
+  private powerGPIO: number;
   private h: number; // Handle for GPIO chip
   private spiHandle: number; // Handle for SPI device
   private buffer: Buffer;
 
   constructor(config: EPD4in26Config = {}) {
-    const {
-      rstPin = 17,
-      dcPin = 25,
-      csPin = 8,
-      busyPin = 24,
-      powerPin = 18,
-    } = config;
-    this.rstPin = rstPin;
-    this.dcPin = dcPin;
-    this.csPin = csPin;
-    this.busyPin = busyPin;
-    this.powerPin = powerPin;
+    const { rstGPIO = 17, dcGPIO = 25, busyGPIO = 24, powerGPIO = 18 } = config;
+    this.rstGPIO = rstGPIO;
+    this.dcGPIO = dcGPIO;
+    this.busyGPIO = busyGPIO;
+    this.powerGPIO = powerGPIO;
 
     // Open GPIO chip
-    this.h = lgpio.gpiochipOpen(0); // Use GPIO chip 0
+    this.h = lgpio.gpiochipOpen(4); // Use GPIO chip 4
 
     // Open SPI device
     this.spiHandle = lgpio.spiOpen(0, 0, 256000); // SPI channel 0, chip select 0, speed 256 kHz
 
     // Initialize GPIO pins with lgpio
     console.log("Initializing GPIO pins...");
-    lgpio.gpioClaimOutput(this.h, powerPin, undefined, true); // Power pin HIGH
-    console.log("Power pin initialized and set to HIGH");
 
-    lgpio.gpioClaimOutput(this.h, rstPin, undefined, false);
+    lgpio.gpioClaimOutput(this.h, this.rstGPIO, undefined, false);
     console.log("RST pin initialized");
 
-    lgpio.gpioClaimOutput(this.h, dcPin, undefined, false);
+    lgpio.gpioClaimOutput(this.h, this.dcGPIO, undefined, false);
     console.log("DC pin initialized");
 
-    lgpio.gpioClaimOutput(this.h, csPin, undefined, true);
-    console.log("CS pin initialized");
-
-    lgpio.gpioClaimInput(this.h, busyPin);
+    lgpio.gpioClaimInput(this.h, this.busyGPIO);
     console.log("Busy pin initialized");
+
+    lgpio.gpioClaimOutput(this.h, this.powerGPIO, undefined, true); // Power pin HIGH
+    console.log("Power pin initialized and set to HIGH");
 
     // Initialize buffer
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
@@ -78,11 +67,11 @@ export class EPD4in26 {
    * Hardware reset
    */
   private async reset(): Promise<void> {
-    lgpio.gpioWrite(this.h, this.rstPin, true);
+    lgpio.gpioWrite(this.h, this.rstGPIO, true);
     await this.delay(20);
-    lgpio.gpioWrite(this.h, this.rstPin, false);
+    lgpio.gpioWrite(this.h, this.rstGPIO, false);
     await this.delay(2);
-    lgpio.gpioWrite(this.h, this.rstPin, true);
+    lgpio.gpioWrite(this.h, this.rstGPIO, true);
     await this.delay(20);
   }
 
@@ -90,20 +79,17 @@ export class EPD4in26 {
    * Send command to the display
    */
   private sendCommand(command: number): void {
-    lgpio.gpioWrite(this.h, this.dcPin, false);
-    lgpio.gpioWrite(this.h, this.csPin, false);
+    lgpio.gpioWrite(this.h, this.dcGPIO, false);
     const txBuffer = Buffer.from([command]);
     const rxBuffer = Buffer.alloc(1);
     lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
-    lgpio.gpioWrite(this.h, this.csPin, true);
   }
 
   /**
    * Send data to the display
    */
   private sendData(data: number | Buffer): void {
-    lgpio.gpioWrite(this.h, this.dcPin, true);
-    lgpio.gpioWrite(this.h, this.csPin, false);
+    lgpio.gpioWrite(this.h, this.dcGPIO, true);
 
     if (typeof data === "number") {
       const txBuffer = Buffer.from([data]);
@@ -114,8 +100,6 @@ export class EPD4in26 {
       const rxBuffer = Buffer.alloc(data.length);
       lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
     }
-
-    lgpio.gpioWrite(this.h, this.csPin, true);
   }
 
   /**
@@ -124,7 +108,7 @@ export class EPD4in26 {
   private async readBusy(): Promise<void> {
     console.log("e-Paper busy");
     let count = 0;
-    while (lgpio.gpioRead(this.h, this.busyPin) === true) {
+    while (lgpio.gpioRead(this.h, this.busyGPIO) === true) {
       await this.delay(10);
       count++;
       if (count > 1000) {
@@ -343,7 +327,7 @@ export class EPD4in26 {
     console.log("Cleaning up GPIO resources...");
 
     // Set all output pins to a safe state
-    lgpio.gpioWrite(this.h, this.powerPin, false); // Power off the display
+    lgpio.gpioWrite(this.h, this.powerGPIO, false); // Power off the display
     lgpio.gpiochipClose(this.h); // Close GPIO chip
     lgpio.spiClose(this.spiHandle); // Close SPI
 
