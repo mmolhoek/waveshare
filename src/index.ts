@@ -89,16 +89,15 @@ export class EPD4in26 {
    * Send data to the display
    */
   private sendData(data: number | Buffer): void {
-    lgpio.gpioWrite(this.h, this.dcGPIO, true);
+    lgpio.gpioWrite(this.h, this.dcGPIO, true); // Set DC pin to HIGH for data
 
     if (typeof data === "number") {
+      // If data is a single byte, send it as a buffer
       const txBuffer = Buffer.from([data]);
-      const rxBuffer = Buffer.alloc(1);
-      lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
+      lgpio.spiWrite(this.spiHandle, txBuffer);
     } else {
-      const txBuffer = data;
-      const rxBuffer = Buffer.alloc(data.length);
-      lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
+      // If data is a buffer, send it directly
+      lgpio.spiWrite(this.spiHandle, data);
     }
   }
 
@@ -131,46 +130,40 @@ export class EPD4in26 {
    * Initialize the ePaper display
    */
   async init(): Promise<void> {
-    await this.reset();
+    // if (lgpio.gpiochipOpen(4) !== 0) {
+    //   throw new Error("Failed to initialize GPIO chip");
+    // }
 
+    await this.reset();
     await this.readBusy();
+
     this.sendCommand(0x12); // SWRESET
     await this.readBusy();
 
-    this.sendCommand(0x01); // Driver output control
-    this.sendData(0xdf);
-    this.sendData(0x01);
-    this.sendData(0x00);
-
-    this.sendCommand(0x11); // data entry mode
-    this.sendData(0x03);
-
-    this.sendCommand(0x44); // set Ram-X address start/end position
-    this.sendData(0x00);
-    this.sendData(0x31); // 0x31-->(49+1)*8=400
-
-    this.sendCommand(0x45); // set Ram-Y address start/end position
-    this.sendData(0xdf); // 0xDF-->(223+1)=224
-    this.sendData(0x01);
-    this.sendData(0x00);
-    this.sendData(0x00);
-
-    this.sendCommand(0x3c); // BorderWavefrom
-    this.sendData(0x01);
-
-    this.sendCommand(0x18); // Read built-in temperature sensor
+    this.sendCommand(0x18); // Use the internal temperature sensor
     this.sendData(0x80);
 
-    this.sendCommand(0x22); // Load Temperature and waveform setting.
-    this.sendData(0xb1);
-    this.sendCommand(0x20);
-    await this.readBusy();
+    this.sendCommand(0x0c); // Set soft start
+    this.sendData(0xae);
+    this.sendData(0xc7);
+    this.sendData(0xc3);
+    this.sendData(0xc0);
+    this.sendData(0x80);
 
-    this.sendCommand(0x4e); // set RAM x address count to 0
-    this.sendData(0x00);
-    this.sendCommand(0x4f); // set RAM y address count to 0
-    this.sendData(0xdf);
+    this.sendCommand(0x01); // Driver output control
+    this.sendData((this.HEIGHT - 1) & 0xff); // Y (low byte)
+    this.sendData((this.HEIGHT - 1) >> 8); // Y (high byte)
+    this.sendData(0x02);
+
+    this.sendCommand(0x3c); // Border setting
     this.sendData(0x01);
+
+    this.sendCommand(0x11); // Data entry mode
+    this.sendData(0x01); // X-mode x+ y-
+
+    this.setWindow(0, this.HEIGHT - 1, this.WIDTH - 1, 0);
+
+    this.setCursor(0, 0);
     await this.readBusy();
 
     console.log("EPD initialized");
@@ -180,10 +173,19 @@ export class EPD4in26 {
    * Clear the display
    */
   async clear(): Promise<void> {
+    // Write 0xFF to memory area 0x24
     this.sendCommand(0x24);
     for (let i = 0; i < (this.WIDTH / 8) * this.HEIGHT; i++) {
       this.sendData(0xff);
     }
+
+    // Write 0xFF to memory area 0x26
+    this.sendCommand(0x26);
+    for (let i = 0; i < (this.WIDTH / 8) * this.HEIGHT; i++) {
+      this.sendData(0xff);
+    }
+
+    // Turn on the display
     await this.turnOnDisplay();
   }
 
@@ -332,5 +334,34 @@ export class EPD4in26 {
     lgpio.spiClose(this.spiHandle); // Close SPI
 
     console.log("EPD resources cleaned up");
+  }
+  /**
+   * Set the display window
+   */
+  setWindow(xStart: number, yStart: number, xEnd: number, yEnd: number): void {
+    this.sendCommand(0x44); // Set RAM X address start/end position
+    this.sendData(xStart & 0xff);
+    this.sendData((xStart >> 8) & 0x03);
+    this.sendData(xEnd & 0xff);
+    this.sendData((xEnd >> 8) & 0x03);
+
+    this.sendCommand(0x45); // Set RAM Y address start/end position
+    this.sendData(yStart & 0xff);
+    this.sendData((yStart >> 8) & 0xff);
+    this.sendData(yEnd & 0xff);
+    this.sendData((yEnd >> 8) & 0xff);
+  }
+
+  /**
+   * Set the cursor position
+   */
+  setCursor(x: number, y: number): void {
+    this.sendCommand(0x4e); // Set RAM X address counter
+    this.sendData(x & 0xff);
+    this.sendData((x >> 8) & 0x03);
+
+    this.sendCommand(0x4f); // Set RAM Y address counter
+    this.sendData(y & 0xff);
+    this.sendData((y >> 8) & 0xff);
   }
 }
