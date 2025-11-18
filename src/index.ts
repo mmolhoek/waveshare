@@ -183,17 +183,16 @@ export class EPD4in26 {
    * Clear the display
    */
   async clear(): Promise<void> {
-    // Write 0xFF to memory area 0x24
-    this.sendCommand(0x24);
-    for (let i = 0; i < (this.WIDTH / 8) * this.HEIGHT; i++) {
-      this.sendData(0xff);
-    }
+    // Fill the buffer with 0xFF (white)
+    this.buffer.fill(0xff);
 
-    // Write 0xFF to memory area 0x26
+    // Write the buffer to memory area 0x24
+    this.sendCommand(0x24);
+    this.sendData(this.buffer);
+
+    // Write the buffer to memory area 0x26
     this.sendCommand(0x26);
-    for (let i = 0; i < (this.WIDTH / 8) * this.HEIGHT; i++) {
-      this.sendData(0xff);
-    }
+    this.sendData(this.buffer);
 
     // Turn on the display
     await this.turnOnDisplay();
