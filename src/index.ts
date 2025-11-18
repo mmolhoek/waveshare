@@ -1,12 +1,10 @@
-import { SpiDevice, openSync as spiOpenSync } from "spi-device";
-import { Gpio } from "pigpio";
+import * as rpio from "rpio";
 
 /**
  * Pin configuration for the ePaper display
  */
 export interface EPD4in26Config {
   spiDevice?: string; // SPI device path, default: '/dev/spidev0.0'
-  spiSpeedHz?: number; // SPI speed in Hz, default: 4000000
   rstPin?: number; // Reset pin (BCM), default: 17
   dcPin?: number; // Data/Command pin (BCM), default: 25
   csPin?: number; // Chip Select pin (BCM), default: 8
@@ -26,56 +24,48 @@ export const EPD_HEIGHT = 480;
 export class EPD4in26 {
   private readonly WIDTH = EPD_WIDTH;
   private readonly HEIGHT = EPD_HEIGHT;
-
-  private spi: SpiDevice;
-  private rst: Gpio;
-  private dc: Gpio;
-  private cs: Gpio;
-  private busy: Gpio;
-  private power: Gpio;
+  private rstPin: number;
+  private dcPin: number;
+  private csPin: number;
+  private busyPin: number;
+  private powerPin: number;
   private buffer: Buffer;
 
   constructor(config: EPD4in26Config = {}) {
     const {
-      spiSpeedHz = 4000000,
       rstPin = 17,
       dcPin = 25,
       csPin = 8,
       busyPin = 24,
       powerPin = 18,
     } = config;
+    this.rstPin = rstPin;
+    this.dcPin = dcPin;
+    this.csPin = csPin;
+    this.busyPin = busyPin;
+    this.powerPin = powerPin;
 
     // Initialize SPI
-    this.spi = spiOpenSync(0, 0, {
-      mode: 0,
-      maxSpeedHz: spiSpeedHz,
-      bitsPerWord: 8,
-    });
+    rpio.spiBegin();
+    rpio.spiSetClockDivider(256); // Adjust based on spiSpeedHz
+    rpio.spiSetDataMode(0); // SPI mode 0
 
-    // Initialize GPIO pins with pigpio
+    // Initialize GPIO pins with rpio
     console.log("Initializing GPIO pins...");
-    try {
-      this.power = new Gpio(powerPin, { mode: Gpio.OUTPUT });
-      this.power.digitalWrite(1); // Power on the display
-      console.log("Power pin initialized and set to HIGH");
+    rpio.open(powerPin, rpio.OUTPUT, rpio.HIGH); // Power on the display
+    console.log("Power pin initialized and set to HIGH");
 
-      this.rst = new Gpio(rstPin, { mode: Gpio.OUTPUT });
-      console.log("RST pin initialized");
+    rpio.open(rstPin, rpio.OUTPUT, rpio.LOW);
+    console.log("RST pin initialized");
 
-      this.dc = new Gpio(dcPin, { mode: Gpio.OUTPUT });
-      console.log("DC pin initialized");
+    rpio.open(dcPin, rpio.OUTPUT, rpio.LOW);
+    console.log("DC pin initialized");
 
-      this.cs = new Gpio(csPin, { mode: Gpio.OUTPUT });
-      console.log("CS pin initialized");
+    rpio.open(csPin, rpio.OUTPUT, rpio.HIGH);
+    console.log("CS pin initialized");
 
-      this.busy = new Gpio(busyPin, { mode: Gpio.INPUT });
-      console.log("Busy pin initialized");
-    } catch (error) {
-      console.error(
-        `Error initializing GPIO pins: ${(error as Error).message}`,
-      );
-      throw error;
-    }
+    rpio.open(busyPin, rpio.INPUT);
+    console.log("Busy pin initialized");
 
     // Initialize buffer
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
@@ -85,11 +75,11 @@ export class EPD4in26 {
    * Hardware reset
    */
   private async reset(): Promise<void> {
-    this.rst.digitalWrite(1);
+    rpio.write(this.rstPin, rpio.HIGH);
     await this.delay(20);
-    this.rst.digitalWrite(0);
+    rpio.write(this.rstPin, rpio.LOW);
     await this.delay(2);
-    this.rst.digitalWrite(1);
+    rpio.write(this.rstPin, rpio.HIGH);
     await this.delay(20);
   }
 
@@ -97,30 +87,32 @@ export class EPD4in26 {
    * Send command to the display
    */
   private sendCommand(command: number): void {
-    this.dc.digitalWrite(0);
-    this.cs.digitalWrite(0);
-    this.spi.transferSync([
-      { sendBuffer: Buffer.from([command]), byteLength: 1 },
-    ]);
-    this.cs.digitalWrite(1);
+    rpio.write(this.dcPin, rpio.LOW);
+    rpio.write(this.csPin, rpio.LOW);
+    const txBuffer = Buffer.from([command]);
+    const rxBuffer = Buffer.alloc(1);
+    rpio.spiTransfer(txBuffer, rxBuffer, txBuffer.length);
+    rpio.write(this.csPin, rpio.HIGH);
   }
 
   /**
    * Send data to the display
    */
   private sendData(data: number | Buffer): void {
-    this.dc.digitalWrite(1);
-    this.cs.digitalWrite(0);
+    rpio.write(this.dcPin, rpio.HIGH);
+    rpio.write(this.csPin, rpio.LOW);
 
     if (typeof data === "number") {
-      this.spi.transferSync([
-        { sendBuffer: Buffer.from([data]), byteLength: 1 },
-      ]);
+      const txBuffer = Buffer.from([data]);
+      const rxBuffer = Buffer.alloc(1);
+      rpio.spiTransfer(txBuffer, rxBuffer, txBuffer.length);
     } else {
-      this.spi.transferSync([{ sendBuffer: data, byteLength: data.length }]);
+      const txBuffer = data;
+      const rxBuffer = Buffer.alloc(data.length);
+      rpio.spiTransfer(txBuffer, rxBuffer, txBuffer.length);
     }
 
-    this.cs.digitalWrite(1);
+    rpio.write(this.csPin, rpio.HIGH);
   }
 
   /**
@@ -129,7 +121,7 @@ export class EPD4in26 {
   private async readBusy(): Promise<void> {
     console.log("e-Paper busy");
     let count = 0;
-    while (this.busy.digitalRead() === 0) {
+    while (rpio.read(this.busyPin) === 0) {
       await this.delay(10);
       count++;
       if (count > 1000) {
@@ -145,7 +137,10 @@ export class EPD4in26 {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+      rpio.msleep(ms);
+      resolve();
+    });
   }
 
   /**
@@ -348,10 +343,13 @@ export class EPD4in26 {
     console.log("Cleaning up GPIO resources...");
 
     // Set all output pins to a safe state
-    this.power.digitalWrite(0); // Power off the display
-    this.rst.digitalWrite(0);
-    this.dc.digitalWrite(0);
-    this.cs.digitalWrite(0);
+    rpio.write(this.powerPin, rpio.LOW); // Power off the display
+    rpio.write(this.rstPin, rpio.LOW);
+    rpio.write(this.dcPin, rpio.LOW);
+    rpio.write(this.csPin, rpio.LOW);
+
+    // Close SPI
+    rpio.spiEnd();
 
     console.log("EPD resources cleaned up");
   }

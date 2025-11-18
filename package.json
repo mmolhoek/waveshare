@@ -21,8 +21,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@types/pigpio": "^1.2.2",
-    "pigpio": "^3.3.1",
+    "@types/rpio": "^2.4.6",
+    "rpio": "^2.4.2",
     "spi-device": "^3.1.2"
   },
   "devDependencies": {
