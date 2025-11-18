@@ -181,18 +181,27 @@ export class EPD4in26 {
    */
   async clear(): Promise<void> {
     // Fill the buffer with 0xFF (white)
+
+    console.time("Buffer fill");
     this.buffer.fill(0xff);
+    console.timeEnd("Buffer fill");
 
     // Write the buffer to memory area 0x24
     this.sendCommand(0x24);
+    console.time("SPI Write Clear");
     this.sendSPIBytes(this.buffer);
+    console.timeEnd("SPI Write Clear");
 
     // Write the buffer to memory area 0x26
     this.sendCommand(0x26);
+    console.time("SPI Write Clear 2");
     this.sendSPIBytes(this.buffer);
+    console.timeEnd("SPI Write Clear 2");
 
     // Turn on the display
+    console.time("Turn On Display");
     await this.turnOnDisplay();
+    console.timeEnd("Turn On Display");
   }
 
   /**
