@@ -1,0 +1,35 @@
+{
+  "name": "waveshare-epaper",
+  "version": "1.0.0",
+  "description": "TypeScript library for Waveshare 4.26 inch ePaper display on Raspberry Pi",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "example": "ts-node example.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "waveshare",
+    "epaper",
+    "e-ink",
+    "raspberry-pi",
+    "spi",
+    "display"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "onoff": "^6.0.3",
+    "spi-device": "^3.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
