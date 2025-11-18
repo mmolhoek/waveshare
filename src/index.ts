@@ -102,13 +102,26 @@ export class EPD4in26 {
       console.log("Sending buffer to SPI:", txBuffer);
 
       // Split large buffers into smaller chunks
-      const chunkSize = 4096; // Adjust chunk size as needed
+      const chunkSize = 48000;
       for (let i = 0; i < txBuffer.length; i += chunkSize) {
         const chunk = txBuffer.subarray(i, i + chunkSize);
         console.log(`Sending chunk to SPI (offset ${i}):`, chunk);
         lgpio.spiWrite(this.spiHandle, chunk);
       }
     }
+  }
+
+  /**
+   * Send raw bytes to the SPI interface in a single transaction
+   * @param data Buffer containing the bytes to send
+   */
+  sendSPIBytes(data: Buffer): void {
+    lgpio.gpioWrite(this.chip, this.dcGPIO, true); // Set DC pin to HIGH for data
+    // Convert the Buffer to a Uint8Array for SPI transmission
+    const txBuffer = new Uint8Array(data);
+
+    // Send the entire buffer in a single SPI transaction
+    lgpio.spiWrite(this.spiHandle, txBuffer);
   }
 
   /**
@@ -188,11 +201,11 @@ export class EPD4in26 {
 
     // Write the buffer to memory area 0x24
     this.sendCommand(0x24);
-    this.sendData(this.buffer);
+    this.sendSPIBytes(this.buffer);
 
     // Write the buffer to memory area 0x26
     this.sendCommand(0x26);
-    this.sendData(this.buffer);
+    this.sendSPIBytes(this.buffer);
 
     // Turn on the display
     await this.turnOnDisplay();
@@ -205,7 +218,7 @@ export class EPD4in26 {
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
-    this.sendData(buf);
+    this.sendSPIBytes(buf);
     await this.turnOnDisplay();
   }
 
