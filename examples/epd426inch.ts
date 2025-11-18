@@ -25,22 +25,23 @@ async function main() {
     // await delay(2000);
     //
     // // Example 2: Draw some shapes
-    // console.log("Drawing shapes...");
-    // epd.clearBuffer();
+    console.log("Drawing shapes in the buffer...");
+    epd.clearBuffer();
     //
-    // // Draw a border
-    // epd.drawRect(0, 0, EPD_WIDTH, EPD_HEIGHT, 1);
-    //
+    // Draw a border
+    epd.drawRect(0, 0, EPD_WIDTH, EPD_HEIGHT, 1);
+
     // // Draw some filled rectangles
-    // epd.fillRect(50, 50, 200, 100, 1);
-    // epd.fillRect(300, 50, 200, 100, 0);
+    epd.fillRect(50, 50, 200, 100, 1);
+    epd.fillRect(300, 50, 200, 100, 0);
     //
     // // Draw some lines
     // epd.drawHLine(50, 200, 700, 1);
     // epd.drawVLine(400, 50, 400, 1);
     //
     // // Display the buffer
-    // await epd.display();
+    console.log("Displaying buffer on EPD...");
+    await epd.display();
     //
     // // Wait a bit
     // await delay(2000);
@@ -67,6 +68,9 @@ async function main() {
     // console.log("Entering sleep mode...");
     // await epd.sleep();
     //
+    console.log("waiting before clearing display...");
+    await delay(2000);
+    await epd.clear();
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);
