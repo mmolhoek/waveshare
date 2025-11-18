@@ -11,6 +11,7 @@ export interface EPD4in26Config {
   dcPin?: number; // Data/Command pin (BCM), default: 25
   csPin?: number; // Chip Select pin (BCM), default: 8
   busyPin?: number; // Busy pin (BCM), default: 24
+  powerPin?: number; // Power control pin (BCM), default: 18
 }
 
 /**
@@ -31,17 +32,17 @@ export class EPD4in26 {
   private dc: Gpio;
   private cs: Gpio;
   private busy: Gpio;
-
+  private power: Gpio;
   private buffer: Buffer;
 
   constructor(config: EPD4in26Config = {}) {
     const {
-      spiDevice = "/dev/spidev0.0",
       spiSpeedHz = 4000000,
       rstPin = 17,
       dcPin = 25,
       csPin = 8,
       busyPin = 24,
+      powerPin = 18,
     } = config;
 
     // Initialize SPI
@@ -51,11 +52,26 @@ export class EPD4in26 {
       bitsPerWord: 8,
     });
 
-    // Initialize GPIO pins
-    this.rst = new Gpio(rstPin, "out");
-    this.dc = new Gpio(dcPin, "out");
-    this.cs = new Gpio(csPin, "out");
-    this.busy = new Gpio(busyPin, "in");
+    // Initialize GPIO pins with debug logs
+    console.log("Initializing GPIO pins...");
+    try {
+      this.power = new Gpio(powerPin, "out");
+      this.power.writeSync(1); // Power on the display
+      console.log("Power pin initialized and set to HIGH");
+      this.rst = new Gpio(rstPin, "out");
+      console.log("RST pin initialized");
+      this.dc = new Gpio(dcPin, "out");
+      console.log("DC pin initialized");
+      this.cs = new Gpio(csPin, "out");
+      console.log("CS pin initialized");
+      this.busy = new Gpio(busyPin, "in");
+      console.log("Busy pin initialized");
+    } catch (error) {
+      console.error(
+        `Error initializing GPIO pins: ${(error as Error).message}`,
+      );
+      throw error;
+    }
 
     // Initialize buffer
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
@@ -329,5 +345,8 @@ export class EPD4in26 {
     this.dc.unexport();
     this.cs.unexport();
     this.busy.unexport();
+    this.power.writeSync(0); // Power off the display
+    this.power.unexport();
+    console.log("EPD resources cleaned up");
   }
 }
