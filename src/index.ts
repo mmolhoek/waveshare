@@ -45,19 +45,10 @@ export class EPD4in26 {
     this.spiHandle = lgpio.spiOpen(0, 0, 256000); // SPI channel 0, chip select 0, speed 256 kHz
 
     // Initialize GPIO pins with lgpio
-    console.log("Initializing GPIO pins...");
-
     lgpio.gpioClaimOutput(this.chip, this.rstGPIO, undefined, false);
-    console.log("RST pin initialized");
-
     lgpio.gpioClaimOutput(this.chip, this.dcGPIO, undefined, false);
-    console.log("DC pin initialized");
-
     lgpio.gpioClaimInput(this.chip, this.busyGPIO);
-    console.log("Busy pin initialized");
-
     lgpio.gpioClaimOutput(this.chip, this.powerGPIO, undefined, true); // Power pin HIGH
-    console.log("Power pin initialized and set to HIGH");
 
     // Initialize buffer
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
@@ -94,18 +85,16 @@ export class EPD4in26 {
     if (typeof data === "number") {
       // If data is a single byte, send it as a Uint8Array
       const txBuffer = new Uint8Array([data]);
-      console.log("Sending single byte to SPI:", txBuffer);
       lgpio.spiWrite(this.spiHandle, txBuffer);
     } else {
       // If data is a Buffer, convert it to Uint8Array before sending
       const txBuffer = new Uint8Array(data);
-      console.log("Sending buffer to SPI:", txBuffer);
+      lgpio.spiWrite(this.spiHandle, txBuffer);
 
       // Split large buffers into smaller chunks
       const chunkSize = 48000;
       for (let i = 0; i < txBuffer.length; i += chunkSize) {
         const chunk = txBuffer.subarray(i, i + chunkSize);
-        console.log(`Sending chunk to SPI (offset ${i}):`, chunk);
         lgpio.spiWrite(this.spiHandle, chunk);
       }
     }
@@ -128,18 +117,15 @@ export class EPD4in26 {
    * Wait until the busy pin is idle
    */
   private async readBusy(): Promise<void> {
-    console.log("e-Paper busy");
     let count = 0;
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
       await this.delay(10);
       count++;
       if (count > 1000) {
-        console.log("Busy timeout!");
         break;
       }
     }
     await this.delay(20);
-    console.log("e-Paper busy release");
   }
 
   /**
@@ -188,8 +174,6 @@ export class EPD4in26 {
 
     this.setCursor(0, 0);
     await this.readBusy();
-
-    console.log("EPD initialized");
   }
 
   /**
@@ -348,14 +332,10 @@ export class EPD4in26 {
    * Clean up resources
    */
   cleanup(): void {
-    console.log("Cleaning up GPIO resources...");
-
     // Set all output pins to a safe state
     lgpio.gpioWrite(this.chip, this.powerGPIO, false); // Power off the display
     lgpio.gpiochipClose(this.chip); // Close GPIO chip
     lgpio.spiClose(this.spiHandle); // Close SPI
-
-    console.log("EPD resources cleaned up");
   }
   /**
    * Set the display window

@@ -15,17 +15,22 @@ async function main() {
 
   try {
     console.log("Initializing EPD...");
+    console.time("EPD Initialization");
     await epd.init();
+    console.timeEnd("EPD Initialization");
 
     // Example 1: Clear the display
     console.log("Clearing display...");
+    console.time("EPD Clear");
     await epd.clear();
+    console.timeEnd("EPD Clear");
 
     // // Wait a bit
     // await delay(2000);
     //
     // // Example 2: Draw some shapes
     console.log("Drawing shapes in the buffer...");
+    console.time("EPD Draw Shapes");
     epd.clearBuffer();
     //
     // Draw a border
@@ -34,6 +39,7 @@ async function main() {
     // // Draw some filled rectangles
     epd.fillRect(50, 50, 200, 100, 1);
     epd.fillRect(300, 50, 200, 100, 0);
+    console.timeEnd("EPD Draw Shapes");
     //
     // // Draw some lines
     // epd.drawHLine(50, 200, 700, 1);
@@ -41,7 +47,9 @@ async function main() {
     //
     // // Display the buffer
     console.log("Displaying buffer on EPD...");
+    console.time("EPD Display");
     await epd.display();
+    console.timeEnd("EPD Display");
     //
     // // Wait a bit
     // await delay(2000);
@@ -69,7 +77,9 @@ async function main() {
     // await epd.sleep();
     //
     console.log("waiting before clearing display...");
+    console.time("Delay Before Clear");
     await delay(2000);
+    console.timeEnd("Delay Before Clear");
     await epd.clear();
     console.log("Done!");
   } catch (error) {
