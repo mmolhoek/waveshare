@@ -27,8 +27,8 @@ async function main() {
     epd.clearBuffer();
     //
     // Draw a border
-    epd.drawRect(1, 1, EPD_WIDTH - 2, EPD_HEIGHT - 2, 1); // Draw some filled rectangles
-    // epd.fillRect(50, 50, 200, 100, 1);
+    // epd.drawRect(1, 1, EPD_WIDTH - 2, EPD_HEIGHT - 2, 1); // Draw some filled rectangles
+    epd.fillRect(50, 50, 200, 100, 1);
     // epd.fillRect(300, 50, 200, 100, 0);
     //
     // // Draw some lines

@@ -220,7 +220,7 @@ export class EPD4in26 {
   private async turnOnDisplay(): Promise<void> {
     if (this.debug) console.time("turnOnDisplay");
     this.sendCommand(0x22);
-    this.sendData(0xf7);
+    this.sendData(0xff);
     this.sendCommand(0x20);
     await this.epaperReady();
     if (this.debug) console.timeEnd("turnOnDisplay");
