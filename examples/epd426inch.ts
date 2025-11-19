@@ -32,8 +32,8 @@ async function main() {
     // await delay(2000);
     // await epd.init();
     // await epd.clear();
-    epd.loadImageInBuffer("./examples/1bit800x480.bmp");
-    await epd.display();
+    const image = await epd.loadImageInBuffer("./examples/1bit.bmp");
+    await epd.display(image);
     await epd.sleep();
   } catch (error) {
     console.error("Error:", error);

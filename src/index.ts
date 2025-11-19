@@ -1,4 +1,5 @@
 import * as lgpio from "lgpio";
+import sharp from "sharp";
 import * as fs from "fs";
 import * as bmp from "bmp-js";
 
@@ -333,53 +334,41 @@ export class EPD4in26 {
    * Load image from BMP file
    * @param path Path to the BMP file
    */
-  loadImageInBuffer(path: string): void {
-    // Read the BMP file
-    const bmpData = bmp.decode(fs.readFileSync(path));
+  async loadImageInBuffer(path: string): Promise<Buffer> {
+    // Load the BMP file using sharp
+    const bmpBuffer = fs.readFileSync(path);
+    const bitmap = bmp.decode(bmpBuffer);
+    // bmp returns pixel data in BGRA format, we need to convert it to 1-bit black and white
+    const packedBytesBuffer = await sharp(bitmap.data, {
+      raw: {
+        width: bitmap.width,
+        height: bitmap.height,
+        channels: 4, // Assuming bmp-js output is RGBA
+      },
+    })
+      .greyscale() // Convert to 8-bit grayscale
+      .threshold(128) // Apply a threshold to make it purely black and white
+      .toColourspace("b-w") // Explicitly set the 1-bit colorspace
+      .raw() // Request raw output bytes
+      .toBuffer(); // Get the final buffer
 
-    // Validate BMP format
-    if (bmpData.bitPP !== 1) {
-      throw new Error(
-        `Invalid BMP format: Expected a 1-bit BMP, but got ${bmpData.bitPP}-bit.`,
-      );
-    }
-    if (bmpData.compress !== 0) {
-      throw new Error(
-        `Invalid BMP format: Only uncompressed BMP files are supported.`,
-      );
-    }
+    const buf = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT, 0xff); // Start with all white pixels
 
-    // Validate BMP dimensions
-    if (bmpData.width > this.WIDTH || bmpData.height > this.HEIGHT) {
-      throw new Error("Image dimensions exceed display size");
-    }
+    // Process the raw pixel data and convert it to 1-bit format
+    for (let y = 0; y < this.HEIGHT; y++) {
+      for (let x = 0; x < this.WIDTH; x++) {
+        const pixelIndex = y * this.WIDTH + x; // Index in the raw pixel data
+        const byteIndex = Math.floor(pixelIndex / 8); // Byte index in the buffer
+        const bitIndex = 7 - (x % 8); // Bit index within the byte
 
-    // Clear the buffer
-    this.clearBuffer();
-
-    // Calculate offsets to center the image
-    const xOffset = Math.floor((this.WIDTH - bmpData.width) / 2);
-    const yOffset = Math.floor((this.HEIGHT - bmpData.height) / 2);
-
-    // Copy the BMP data into the buffer
-    for (let y = 0; y < bmpData.height; y++) {
-      for (let x = 0; x < bmpData.width; x++) {
-        const bmpByteIndex =
-          Math.floor(x / 8) + y * Math.floor(bmpData.width / 8);
-        const bmpBitIndex = 7 - (x % 8);
-        const bmpPixel = (bmpData.data[bmpByteIndex] >> bmpBitIndex) & 1;
-
-        const displayByteIndex =
-          Math.floor((x + xOffset) / 8) + (y + yOffset) * (this.WIDTH / 8);
-        const displayBitIndex = 7 - ((x + xOffset) % 8);
-
-        if (bmpPixel === 0) {
-          this.buffer[displayByteIndex] |= 1 << displayBitIndex; // White pixel
-        } else {
-          this.buffer[displayByteIndex] &= ~(1 << displayBitIndex); // Black pixel
+        // Check if the pixel is black (value 0)
+        if (packedBytesBuffer[pixelIndex] === 0) {
+          buf[byteIndex] &= ~(1 << bitIndex); // Set the bit to 0 for black
         }
       }
     }
+
+    return buf;
   }
 
   /**
