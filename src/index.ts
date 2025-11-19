@@ -72,8 +72,10 @@ export class EPD4in26 {
   private sendCommand(command: number): void {
     lgpio.gpioWrite(this.chip, this.dcGPIO, false);
     const txBuffer = Buffer.from([command]);
-    const rxBuffer = Buffer.alloc(1);
-    lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
+    // no need to read data back for now
+    // const rxBuffer = Buffer.alloc(1);
+    // lgpio.spiXfer(this.spiHandle, txBuffer, rxBuffer);
+    lgpio.spiWrite(this.spiHandle, new Uint8Array(txBuffer));
   }
 
   /**
