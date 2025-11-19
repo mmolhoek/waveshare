@@ -217,10 +217,10 @@ export class EPD4in26 {
   /**
    * Turn on display
    */
-  private async turnOnDisplay(): Promise<void> {
+  private async turnOnDisplay(fast: boolean = true): Promise<void> {
     if (this.debug) console.time("turnOnDisplay");
     this.sendCommand(0x22);
-    this.sendData(0xff);
+    this.sendData(fast ? 0xff : 0x7f);
     this.sendCommand(0x20);
     await this.epaperReady();
     if (this.debug) console.timeEnd("turnOnDisplay");
