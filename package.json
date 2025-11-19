@@ -21,10 +21,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "bmp-js": "^0.1.0",
     "lgpio": "^1.0.6",
     "spi-device": "^3.1.2"
   },
   "devDependencies": {
+    "@types/bmp-js": "^0.1.2",
     "@types/node": "^20.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0"

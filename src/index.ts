@@ -1,4 +1,6 @@
 import * as lgpio from "lgpio";
+import * as fs from "fs";
+import * as bmp from "bmp-js";
 
 /**
  * Pin configuration for the waveshare 4.26 ePaper display (800x480) 1-bit black and white
@@ -328,14 +330,53 @@ export class EPD4in26 {
   }
 
   /**
-   * Load image from buffer
-   * Buffer should be in the format: 1 bit per pixel, packed
+   * Load image from BMP file
+   * @param path Path to the BMP file
    */
-  loadImage(imageBuffer: Buffer): void {
-    if (imageBuffer.length === this.buffer.length) {
-      imageBuffer.copy(this.buffer);
-    } else {
-      console.error("Image buffer size mismatch");
+  loadImage(path: string): void {
+    // Read the BMP file
+    const bmpData = bmp.decode(fs.readFileSync(path));
+
+    // Validate BMP format
+    if (bmpData.bitPP !== 1) {
+      throw new Error(
+        `Invalid BMP format: Expected a 1-bit BMP, but got ${bmpData.bitPP}-bit.`,
+      );
+    }
+    if (bmpData.compress !== 0) {
+      throw new Error(
+        `Invalid BMP format: Only uncompressed BMP files are supported.`,
+      );
+    }
+
+    // Validate BMP dimensions
+    if (bmpData.width > this.WIDTH || bmpData.height > this.HEIGHT) {
+      throw new Error("Image dimensions exceed display size");
+    }
+
+    // Clear the buffer
+    this.clearBuffer();
+
+    // Calculate offsets to center the image
+    const xOffset = Math.floor((this.WIDTH - bmpData.width) / 2);
+    const yOffset = Math.floor((this.HEIGHT - bmpData.height) / 2);
+
+    // Copy the BMP data into the buffer
+    for (let y = 0; y < bmpData.height; y++) {
+      for (let x = 0; x < bmpData.width; x++) {
+        const bmpByteIndex = Math.floor(x / 8) + y * Math.floor(bmpData.width / 8);
+        const bmpBitIndex = 7 - (x % 8);
+        const bmpPixel = (bmpData.data[bmpByteIndex] >> bmpBitIndex) & 1;
+
+        const displayByteIndex = Math.floor((x + xOffset) / 8) + (y + yOffset) * (this.WIDTH / 8);
+        const displayBitIndex = 7 - ((x + xOffset) % 8);
+
+        if (bmpPixel === 0) {
+          this.buffer[displayByteIndex] |= 1 << displayBitIndex; // White pixel
+        } else {
+          this.buffer[displayByteIndex] &= ~(1 << displayBitIndex); // Black pixel
+        }
+      }
     }
   }
 
