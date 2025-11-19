@@ -1,7 +1,7 @@
 import * as lgpio from "lgpio";
 
 /**
- * Pin configuration for the ePaper display
+ * Pin configuration for the waveshare 4.26 ePaper display (800x480) 1-bit black and white
  */
 export interface EPD4in26Config {
   spiDevice?: string; // SPI device path, default: '/dev/spidev0.0'
@@ -90,27 +90,8 @@ export class EPD4in26 {
       // If data is a Buffer, convert it to Uint8Array before sending
       const txBuffer = new Uint8Array(data);
       lgpio.spiWrite(this.spiHandle, txBuffer);
-
-      // Split large buffers into smaller chunks
-      const chunkSize = 48000;
-      for (let i = 0; i < txBuffer.length; i += chunkSize) {
-        const chunk = txBuffer.subarray(i, i + chunkSize);
-        lgpio.spiWrite(this.spiHandle, chunk);
-      }
+      lgpio.spiWrite(this.spiHandle, txBuffer);
     }
-  }
-
-  /**
-   * Send raw bytes to the SPI interface in a single transaction
-   * @param data Buffer containing the bytes to send
-   */
-  sendSPIBytes(data: Buffer): void {
-    lgpio.gpioWrite(this.chip, this.dcGPIO, true); // Set DC pin to HIGH for data
-    // Convert the Buffer to a Uint8Array for SPI transmission
-    const txBuffer = new Uint8Array(data);
-
-    // Send the entire buffer in a single SPI transaction
-    lgpio.spiWrite(this.spiHandle, txBuffer);
   }
 
   /**
@@ -189,15 +170,15 @@ export class EPD4in26 {
     // Write the buffer to memory area 0x24
     this.sendCommand(0x24);
     console.time("SPI Write Clear");
-    this.sendSPIBytes(this.buffer);
+    this.sendData(this.buffer);
     console.timeEnd("SPI Write Clear");
 
-    // Write the buffer to memory area 0x26
-    this.sendCommand(0x26);
-    console.time("SPI Write Clear 2");
-    this.sendSPIBytes(this.buffer);
-    console.timeEnd("SPI Write Clear 2");
-
+    // // Write the buffer to memory area 0x26 (optional second memory area for color displays)
+    // this.sendCommand(0x26);
+    // console.time("SPI Write Clear 2");
+    // this.sendData(this.buffer);
+    // console.timeEnd("SPI Write Clear 2");
+    //
     // Turn on the display
     console.time("Turn On Display");
     await this.turnOnDisplay();
@@ -211,7 +192,7 @@ export class EPD4in26 {
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
-    this.sendSPIBytes(buf);
+    this.sendData(buf);
     await this.turnOnDisplay();
   }
 

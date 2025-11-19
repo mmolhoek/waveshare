@@ -15,6 +15,7 @@ async function main() {
 
   try {
     console.log("Initializing EPD...");
+    console.time("total test duration");
     console.time("EPD Initialization");
     await epd.init();
     console.timeEnd("EPD Initialization");
@@ -34,11 +35,9 @@ async function main() {
     epd.clearBuffer();
     //
     // Draw a border
-    epd.drawRect(0, 0, EPD_WIDTH, EPD_HEIGHT, 1);
-
-    // // Draw some filled rectangles
-    epd.fillRect(50, 50, 200, 100, 1);
-    epd.fillRect(300, 50, 200, 100, 0);
+    epd.drawRect(1, 1, EPD_WIDTH - 2, EPD_HEIGHT - 2, 1); // Draw some filled rectangles
+    // epd.fillRect(50, 50, 200, 100, 1);
+    // epd.fillRect(300, 50, 200, 100, 0);
     console.timeEnd("EPD Draw Shapes");
     //
     // // Draw some lines
@@ -81,6 +80,7 @@ async function main() {
     await delay(2000);
     console.timeEnd("Delay Before Clear");
     await epd.clear();
+    console.timeEnd("total test duration");
     console.log("Done!");
   } catch (error) {
     console.error("Error:", error);
