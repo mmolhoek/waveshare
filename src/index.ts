@@ -339,7 +339,17 @@ export class EPD4in26 {
     const bmpBuffer = fs.readFileSync(path);
     const bitmap = bmp.decode(bmpBuffer);
 
-    // bmp returns pixel data in BGRA format, we need to convert it to 1-bit black and white
+    // Determine the scaling factor if the image is larger than the display
+    const scaleFactor = Math.min(
+      this.WIDTH / bitmap.width,
+      this.HEIGHT / bitmap.height,
+      1, // Ensure we don't upscale smaller images
+    );
+
+    const targetWidth = Math.floor(bitmap.width * scaleFactor);
+    const targetHeight = Math.floor(bitmap.height * scaleFactor);
+
+    // Resize and process the image using sharp
     const packedBytesBuffer = await sharp(bitmap.data, {
       raw: {
         width: bitmap.width,
@@ -347,6 +357,7 @@ export class EPD4in26 {
         channels: 4, // Assuming bmp-js output is RGBA
       },
     })
+      .resize(targetWidth, targetHeight) // Resize the image if necessary
       .greyscale() // Convert to 8-bit grayscale
       .threshold(128) // Apply a threshold to make it purely black and white
       .toColourspace("b-w") // Explicitly set the 1-bit colorspace
@@ -356,13 +367,13 @@ export class EPD4in26 {
     const buf = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT, 0xff); // Start with all white pixels
 
     // Calculate offsets for centering the image
-    const xOffset = Math.max(0, Math.floor((this.WIDTH - bitmap.width) / 2));
-    const yOffset = Math.max(0, Math.floor((this.HEIGHT - bitmap.height) / 2));
+    const xOffset = Math.max(0, Math.floor((this.WIDTH - targetWidth) / 2));
+    const yOffset = Math.max(0, Math.floor((this.HEIGHT - targetHeight) / 2));
 
     // Process the raw pixel data and copy it into the display buffer
-    for (let y = 0; y < bitmap.height; y++) {
-      for (let x = 0; x < bitmap.width; x++) {
-        const pixelIndex = y * bitmap.width + x; // Index in the raw pixel data
+    for (let y = 0; y < targetHeight; y++) {
+      for (let x = 0; x < targetWidth; x++) {
+        const pixelIndex = y * targetWidth + x; // Index in the raw pixel data
         const byteIndex = Math.floor(
           (x + xOffset + (y + yOffset) * this.WIDTH) / 8,
         ); // Byte index in the buffer
