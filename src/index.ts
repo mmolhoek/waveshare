@@ -116,7 +116,7 @@ export class EPD4in26 {
   /**
    * Wait until the busy pin is idle
    */
-  private async readBusy(): Promise<void> {
+  private async epaperReady(): Promise<void> {
     let count = 0;
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
       await this.delay(10);
@@ -144,10 +144,10 @@ export class EPD4in26 {
     // }
 
     await this.reset();
-    await this.readBusy();
+    await this.epaperReady();
 
     this.sendCommand(0x12); // SWRESET
-    await this.readBusy();
+    await this.epaperReady();
 
     this.sendCommand(0x18); // Use the internal temperature sensor
     this.sendData(0x80);
@@ -173,7 +173,7 @@ export class EPD4in26 {
     this.setWindow(0, this.HEIGHT - 1, this.WIDTH - 1, 0);
 
     this.setCursor(0, 0);
-    await this.readBusy();
+    await this.epaperReady();
   }
 
   /**
@@ -222,7 +222,7 @@ export class EPD4in26 {
     this.sendCommand(0x22);
     this.sendData(0xf7);
     this.sendCommand(0x20);
-    await this.readBusy();
+    await this.epaperReady();
   }
 
   /**
