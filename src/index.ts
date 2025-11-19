@@ -104,7 +104,6 @@ export class EPD4in26 {
       // If data is a Buffer, convert it to Uint8Array before sending
       const txBuffer = new Uint8Array(data);
       lgpio.spiWrite(this.spiHandle, txBuffer);
-      lgpio.spiWrite(this.spiHandle, txBuffer);
     }
     if (this.debug && typeof data !== "number") console.timeEnd("sendData");
   }
