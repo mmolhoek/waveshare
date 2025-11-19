@@ -11,44 +11,32 @@ async function main() {
     // csPin: 8,
     // busyPin: 24,
     // spiSpeedHz: 4000000,
+    debug: true, // Enable debug mode for verbose logging
   });
 
   try {
-    console.log("Initializing EPD...");
-    console.time("total test duration");
-    console.time("EPD Initialization");
     await epd.init();
-    console.timeEnd("EPD Initialization");
 
     // Example 1: Clear the display
-    console.log("Clearing display...");
-    console.time("EPD Clear");
     await epd.clear();
-    console.timeEnd("EPD Clear");
 
     // // Wait a bit
     // await delay(2000);
     //
     // // Example 2: Draw some shapes
-    console.log("Drawing shapes in the buffer...");
-    console.time("EPD Draw Shapes");
     epd.clearBuffer();
     //
     // Draw a border
     epd.drawRect(1, 1, EPD_WIDTH - 2, EPD_HEIGHT - 2, 1); // Draw some filled rectangles
     // epd.fillRect(50, 50, 200, 100, 1);
     // epd.fillRect(300, 50, 200, 100, 0);
-    console.timeEnd("EPD Draw Shapes");
     //
     // // Draw some lines
     // epd.drawHLine(50, 200, 700, 1);
     // epd.drawVLine(400, 50, 400, 1);
     //
     // // Display the buffer
-    console.log("Displaying buffer on EPD...");
-    console.time("EPD Display");
     await epd.display();
-    console.timeEnd("EPD Display");
     //
     // // Wait a bit
     // await delay(2000);
@@ -75,13 +63,8 @@ async function main() {
     // console.log("Entering sleep mode...");
     // await epd.sleep();
     //
-    console.log("waiting before clearing display...");
-    console.time("Delay Before Clear");
     await delay(2000);
-    console.timeEnd("Delay Before Clear");
     await epd.clear();
-    console.timeEnd("total test duration");
-    console.log("Done!");
   } catch (error) {
     console.error("Error:", error);
   } finally {

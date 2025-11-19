@@ -9,6 +9,7 @@ export interface EPD4in26Config {
   dcGPIO?: number; // Data/Command pin (BCM), default: 25
   busyGPIO?: number; // Busy pin (BCM), default: 24
   powerGPIO?: number; // Power control pin (BCM), default: 18
+  debug?: boolean; // Enable debug timing, default: false
 }
 
 /**
@@ -27,18 +28,26 @@ export class EPD4in26 {
   private dcGPIO: number;
   private busyGPIO: number;
   private powerGPIO: number;
+  private debug: boolean;
   private chip: number; // Handle for GPIO chip
   private spiHandle: number; // Handle for SPI device
   private buffer: Buffer;
 
   constructor(config: EPD4in26Config = {}) {
-    const { rstGPIO = 17, dcGPIO = 25, busyGPIO = 24, powerGPIO = 18 } = config;
+    const {
+      rstGPIO = 17,
+      dcGPIO = 25,
+      busyGPIO = 24,
+      powerGPIO = 18,
+      debug = false,
+    } = config;
     this.rstGPIO = rstGPIO;
     this.dcGPIO = dcGPIO;
     this.busyGPIO = busyGPIO;
     this.powerGPIO = powerGPIO;
 
     // Open GPIO chip
+    this.debug = debug;
     this.chip = lgpio.gpiochipOpen(0); // Use GPIO chip 0
 
     // Open SPI device
@@ -58,12 +67,14 @@ export class EPD4in26 {
    * Hardware reset
    */
   private async reset(): Promise<void> {
+    if (this.debug) console.time("reset");
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
     lgpio.gpioWrite(this.chip, this.rstGPIO, false);
     await this.delay(2);
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
+    if (this.debug) console.timeEnd("reset");
   }
 
   /**
@@ -82,6 +93,7 @@ export class EPD4in26 {
    * Send data to the display
    */
   private sendData(data: number | Buffer): void {
+    if (this.debug && typeof data !== "number") console.time("sendData");
     lgpio.gpioWrite(this.chip, this.dcGPIO, true); // Set DC pin to HIGH for data
 
     if (typeof data === "number") {
@@ -94,6 +106,7 @@ export class EPD4in26 {
       lgpio.spiWrite(this.spiHandle, txBuffer);
       lgpio.spiWrite(this.spiHandle, txBuffer);
     }
+    if (this.debug && typeof data !== "number") console.timeEnd("sendData");
   }
 
   /**
@@ -101,6 +114,7 @@ export class EPD4in26 {
    */
   private async epaperReady(): Promise<void> {
     let count = 0;
+    if (this.debug) console.time("epaperReady");
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
       await this.delay(10);
       count++;
@@ -109,6 +123,7 @@ export class EPD4in26 {
       }
     }
     await this.delay(20);
+    if (this.debug) console.timeEnd("epaperReady");
   }
 
   /**
@@ -126,6 +141,7 @@ export class EPD4in26 {
     //   throw new Error("Failed to initialize GPIO chip");
     // }
 
+    if (this.debug) console.time("init");
     await this.reset();
     await this.epaperReady();
 
@@ -157,6 +173,7 @@ export class EPD4in26 {
 
     this.setCursor(0, 0);
     await this.epaperReady();
+    if (this.debug) console.timeEnd("init");
   }
 
   /**
@@ -165,15 +182,14 @@ export class EPD4in26 {
   async clear(): Promise<void> {
     // Fill the buffer with 0xFF (white)
 
-    console.time("Buffer fill");
+    if (this.debug) console.time("clear");
+    if (this.debug) console.time("Buffer fill");
     this.buffer.fill(0xff);
     console.timeEnd("Buffer fill");
 
     // Write the buffer to memory area 0x24
     this.sendCommand(0x24);
-    console.time("SPI Write Clear");
     this.sendData(this.buffer);
-    console.timeEnd("SPI Write Clear");
 
     // // Write the buffer to memory area 0x26 (optional second memory area for color displays)
     // this.sendCommand(0x26);
@@ -182,39 +198,44 @@ export class EPD4in26 {
     // console.timeEnd("SPI Write Clear 2");
     //
     // Turn on the display
-    console.time("Turn On Display");
     await this.turnOnDisplay();
-    console.timeEnd("Turn On Display");
+    if (this.debug) console.timeEnd("clear");
   }
 
   /**
    * Display the buffer contents
    */
   async display(imageBuffer?: Buffer): Promise<void> {
+    if (this.debug) console.time("display");
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
     this.sendData(buf);
     await this.turnOnDisplay();
+    if (this.debug) console.timeEnd("display");
   }
 
   /**
    * Turn on display
    */
   private async turnOnDisplay(): Promise<void> {
+    if (this.debug) console.time("turnOnDisplay");
     this.sendCommand(0x22);
     this.sendData(0xf7);
     this.sendCommand(0x20);
     await this.epaperReady();
+    if (this.debug) console.timeEnd("turnOnDisplay");
   }
 
   /**
    * Enter deep sleep mode
    */
   async sleep(): Promise<void> {
+    if (this.debug) console.time("sleep");
     this.sendCommand(0x10); // deep sleep
     this.sendData(0x01);
     await this.delay(100);
+    if (this.debug) console.timeEnd("sleep");
   }
 
   /**
