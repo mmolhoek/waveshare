@@ -179,7 +179,7 @@ export class EPD4in26 {
   /**
    * Clear the display
    */
-  async clear(): Promise<void> {
+  async clear(fast: boolean = true): Promise<void> {
     // Fill the buffer with 0xFF (white)
 
     if (this.debug) console.time("clear");
@@ -198,7 +198,7 @@ export class EPD4in26 {
     // console.timeEnd("SPI Write Clear 2");
     //
     // Turn on the display
-    await this.turnOnDisplay();
+    await this.turnOnDisplay(fast);
     if (this.debug) console.timeEnd("clear");
   }
 
@@ -221,7 +221,7 @@ export class EPD4in26 {
   private async turnOnDisplay(fast: boolean = true): Promise<void> {
     if (this.debug) console.time("turnOnDisplay");
     this.sendCommand(0x22);
-    this.sendData(fast ? 0xff : 0x7f);
+    this.sendData(fast ? 0xff : 0xf7);
     this.sendCommand(0x20);
     await this.epaperReady();
     if (this.debug) console.timeEnd("turnOnDisplay");
