@@ -333,7 +333,7 @@ export class EPD4in26 {
    * Load image from BMP file
    * @param path Path to the BMP file
    */
-  loadImage(path: string): void {
+  loadImageInBuffer(path: string): void {
     // Read the BMP file
     const bmpData = bmp.decode(fs.readFileSync(path));
 
@@ -364,11 +364,13 @@ export class EPD4in26 {
     // Copy the BMP data into the buffer
     for (let y = 0; y < bmpData.height; y++) {
       for (let x = 0; x < bmpData.width; x++) {
-        const bmpByteIndex = Math.floor(x / 8) + y * Math.floor(bmpData.width / 8);
+        const bmpByteIndex =
+          Math.floor(x / 8) + y * Math.floor(bmpData.width / 8);
         const bmpBitIndex = 7 - (x % 8);
         const bmpPixel = (bmpData.data[bmpByteIndex] >> bmpBitIndex) & 1;
 
-        const displayByteIndex = Math.floor((x + xOffset) / 8) + (y + yOffset) * (this.WIDTH / 8);
+        const displayByteIndex =
+          Math.floor((x + xOffset) / 8) + (y + yOffset) * (this.WIDTH / 8);
         const displayBitIndex = 7 - ((x + xOffset) % 8);
 
         if (bmpPixel === 0) {
