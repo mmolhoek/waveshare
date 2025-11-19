@@ -116,13 +116,12 @@ export class EPD4in26 {
     let count = 0;
     if (this.debug) console.time("epaperReady");
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
-      await this.delay(10);
+      await this.delay(5);
       count++;
       if (count > 1000) {
         break;
       }
     }
-    await this.delay(20);
     if (this.debug) console.timeEnd("epaperReady");
   }
 
