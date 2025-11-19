@@ -338,6 +338,7 @@ export class EPD4in26 {
     // Load the BMP file using sharp
     const bmpBuffer = fs.readFileSync(path);
     const bitmap = bmp.decode(bmpBuffer);
+
     // bmp returns pixel data in BGRA format, we need to convert it to 1-bit black and white
     const packedBytesBuffer = await sharp(bitmap.data, {
       raw: {
@@ -354,12 +355,18 @@ export class EPD4in26 {
 
     const buf = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT, 0xff); // Start with all white pixels
 
-    // Process the raw pixel data and convert it to 1-bit format
-    for (let y = 0; y < this.HEIGHT; y++) {
-      for (let x = 0; x < this.WIDTH; x++) {
-        const pixelIndex = y * this.WIDTH + x; // Index in the raw pixel data
-        const byteIndex = Math.floor(pixelIndex / 8); // Byte index in the buffer
-        const bitIndex = 7 - (x % 8); // Bit index within the byte
+    // Calculate offsets for centering the image
+    const xOffset = Math.max(0, Math.floor((this.WIDTH - bitmap.width) / 2));
+    const yOffset = Math.max(0, Math.floor((this.HEIGHT - bitmap.height) / 2));
+
+    // Process the raw pixel data and copy it into the display buffer
+    for (let y = 0; y < bitmap.height; y++) {
+      for (let x = 0; x < bitmap.width; x++) {
+        const pixelIndex = y * bitmap.width + x; // Index in the raw pixel data
+        const byteIndex = Math.floor(
+          (x + xOffset + (y + yOffset) * this.WIDTH) / 8,
+        ); // Byte index in the buffer
+        const bitIndex = 7 - ((x + xOffset) % 8); // Bit index within the byte
 
         // Check if the pixel is black (value 0)
         if (packedBytesBuffer[pixelIndex] === 0) {
