@@ -32,8 +32,21 @@ async function main() {
     // await delay(2000);
     // await epd.init();
     // await epd.clear();
-    const image = await epd.loadImageInBuffer("./examples/1bit800x480.bmp");
+    let image = await epd.loadImageInBuffer("./examples/me.bmp");
     await epd.display(image);
+    await delay(2000);
+    image = await epd.loadImageInBuffer("./examples/large.bmp");
+    await epd.display(image);
+    await delay(2000);
+    image = await epd.loadImageInBuffer("./examples/1bit.bmp");
+    await epd.display(image);
+    await delay(2000);
+    image = await epd.loadImageInBuffer("./examples/4in26_Scale.bmp");
+    await epd.display(image);
+    await delay(2000);
+    image = await epd.loadImageInBuffer("./examples/7in5_V2.bmp");
+    await epd.display(image);
+    await delay(2000);
     await epd.sleep();
   } catch (error) {
     console.error("Error:", error);

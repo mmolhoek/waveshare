@@ -337,7 +337,35 @@ export class EPD4in26 {
   async loadImageInBuffer(path: string): Promise<Buffer> {
     // Load the BMP file using sharp
     const bmpBuffer = fs.readFileSync(path);
-    const bitmap = bmp.decode(bmpBuffer);
+    let bitmap;
+    try {
+      bitmap = bmp.decode(bmpBuffer);
+    } catch (error) {
+      console.log("Image is not in BMP format, converting using sharp...");
+      try {
+        await sharp(bmpBuffer)
+          .raw()
+          .toBuffer()
+          .then((data) => {
+            console.log("Image loaded, converting to BMP format...");
+            bitmap = bmp.encode({
+              data: data,
+              width: this.WIDTH,
+              height: this.HEIGHT,
+            });
+            bitmap = bmp.decode(bitmap.data);
+            console.log("Image converted to BMP!");
+          })
+          .catch((err) => {
+            console.error("Error:", err);
+          });
+      } catch (err) {
+        console.error("Failed to convert image to BMP format:", err);
+      }
+    }
+    if (!bitmap) {
+      throw new Error("Failed to load image");
+    }
 
     // Determine the scaling factor if the image is larger than the display
     const scaleFactor = Math.min(
