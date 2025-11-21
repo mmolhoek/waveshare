@@ -1,10 +1,11 @@
-// Example usage of the Waveshare 4.26" ePaper display library
+// Example usage of the Waveshare ePaper display library
 
-import { EPD4in26, EPD_WIDTH, EPD_HEIGHT } from "../src/index";
+import { EPD } from "../src/index";
 
 async function main() {
   // Initialize the display with default pins
-  const epd = new EPD4in26({
+  // and default width and height for a 4.26-inch display (800x480)
+  const epd = new EPD({
     debug: true, // Enable debug mode for verbose logging
   });
 
@@ -18,35 +19,25 @@ async function main() {
     // Example 2: Draw some shapes
     epd.clearBuffer();
     //
-    // epd.fillRect(50, 50, EPD_WIDTH - 100, EPD_HEIGHT - 100, 1);
-    // epd.fillRect(100, 100, EPD_WIDTH - 200, EPD_HEIGHT - 200, 0);
-    // epd.drawRect(150, 150, EPD_WIDTH - 300, EPD_HEIGHT - 300, 1);
+    epd.fillRect(50, 50, epd.width - 100, epd.height - 100, 1);
+    epd.fillRect(100, 100, epd.width - 200, epd.height - 200, 0);
+    epd.drawRect(150, 150, epd.width - 300, epd.height - 300, 1);
     //
     // // Display the buffer
-    // await epd.display();
-    //
-    // // Put display to sleep
-    // console.log("Entering sleep mode...");
-    // await epd.sleep();
-    //
+    await epd.display();
     // await delay(2000);
-    // await epd.init();
-    // await epd.clear();
-    let image = await epd.loadImageInBuffer("./examples/me.bmp");
+    let image = await epd.loadImageInBuffer("./examples/large.bmp");
     await epd.display(image);
-    await delay(2000);
-    image = await epd.loadImageInBuffer("./examples/large.bmp");
-    await epd.display(image);
-    await delay(2000);
+    // await delay(2000);
     image = await epd.loadImageInBuffer("./examples/1bit.bmp");
     await epd.display(image);
-    await delay(2000);
+    // await delay(2000);
     image = await epd.loadImageInBuffer("./examples/4in26_Scale.bmp");
     await epd.display(image);
-    await delay(2000);
+    // await delay(2000);
     image = await epd.loadImageInBuffer("./examples/7in5_V2.bmp");
     await epd.display(image);
-    await delay(2000);
+    // await delay(2000);
     await epd.sleep();
   } catch (error) {
     console.error("Error:", error);

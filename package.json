@@ -1,13 +1,13 @@
 {
-  "name": "waveshare-epaper",
-  "version": "1.0.0",
-  "description": "TypeScript library for Waveshare 4.26 inch ePaper display on Raspberry Pi",
+  "name": "waveshare",
+  "version": "0.1.0",
+  "description": "Library for Waveshare ePaper display",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "example": "npm run build && ts-node examples/epd426inch.ts",
+    "example": "npm run build && ts-node examples/test.ts",
     "clean": "rm -rf dist"
   },
   "keywords": [
