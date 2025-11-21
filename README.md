@@ -17,7 +17,7 @@ A TypeScript library for controlling the Waveshare 4.26 inch ePaper display (800
 - Waveshare 4.26 inch ePaper display (800x480) HAT or any other compatible model of Waveshare.
 - SPI connection enabled on Raspberry Pi
 
-## Installation
+## Installation instructions on the Raspberry Pi
 
 1. Enable SPI on your Raspberry Pi:
 
