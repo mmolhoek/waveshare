@@ -1,4 +1,4 @@
-import { EPD } from "../src/index";
+import { EPD } from "../index";
 import * as lgpio from "lgpio";
 
 // Mock lgpio library
