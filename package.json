@@ -9,6 +9,7 @@
     "watch": "tsc --watch",
     "test": "jest",
     "example": "npm run build && ts-node examples/test.ts",
+    "publish:npm": "npm run build && npm publish",
     "clean": "rm -rf dist"
   },
   "keywords": [

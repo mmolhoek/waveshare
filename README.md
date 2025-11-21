@@ -107,6 +107,28 @@ Then log out and back in.
 
 MIT
 
+## Publishing to npm (for maintainers)
+
+To publish this package to npm, follow these steps:
+
+1. Make sure you are logged in to npm:
+
+```bash
+npm login
+```
+
+2 Build the project:
+
+```bash
+npm run build
+```
+
+3 Publish the package:
+
+```bash
+npm run publish:npm
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

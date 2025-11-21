@@ -1,0 +1,16 @@
+# Ignore unnecessary files and folders
+examples/
+src/
+*.ts
+*.tsx
+*.map
+*.log
+node_modules/
+dist/test/
+test/
+coverage/
+.DS_Store
+.idea/
+.vscode/
+.env
+*.local
